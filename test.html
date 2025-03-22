@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Code Editor</title>
+
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <!-- CodeMirror Themes -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/eclipse.min.css">
+    <!-- Light Theme -->
+    <!-- Split.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/split.js/1.6.0/split.min.css">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        h1 {
+            margin: 0;
+            padding: 10px;
+            background-color: #252526;
+            color: #ffffff;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 50px);
+        }
+
+        .split {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .editor-panel,
+        .output-panel {
+            padding: 10px;
+        }
+
+        .editor-panel {
+            background-color: #2d2d2d;
+        }
+
+        .output-panel {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            overflow-y: auto;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background-color: #252526;
+        }
+
+        select,
+        button {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: none;
+            border-radius: 4px;
+            background-color: #3e3e42;
+            color: #ffffff;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #007acc;
+        }
+
+        #output {
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Online Code Editor</h1>
+
+    <div class="container">
+        <div class="split">
+            <div class="editor-panel">
+                <div class="controls">
+                    <select id="language-select">
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                    </select>
+                    <select id="theme-select">
+                        <option value="material-darker">Material Darker</option>
+                        <option value="dracula">Dracula</option>
+                        <option value="monokai">Monokai</option>
+                        <option value="eclipse">Eclipse (Light)</option> <!-- Light Theme -->
+                    </select>
+                    <button onclick="run()">Run Code</button>
+                </div>
+                <textarea id="editor"></textarea>
+            </div>
+            <div class="output-panel">
+                <h3>Output</h3>
+                <pre id="output"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- CodeMirror JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <!-- CodeMirror Modes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <!-- CodeMirror Addons -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/javascript-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/lint/lint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/lint/javascript-lint.min.js"></script>
+    <!-- Split.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/split.js/1.6.0/split.min.js"></script>
+    <!-- Pyodide -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.21.3/full/pyodide.js"></script>
+
+    <script>
+        // Initialize CodeMirror
+        const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+            lineNumbers: true,
+            mode: 'javascript',
+            theme: 'material-darker',
+            indentUnit: 4,
+            smartIndent: true,
+            autofocus: true,
+            autoCloseBrackets: true,
+            gutters: ["CodeMirror-linenumbers", "CodeMirror-lint-markers"],
+            lint: true,
+            hintOptions: {
+                hint: CodeMirror.hint.javascript,
+                completeSingle: false,
+            },
+            extraKeys: {
+                "Ctrl-Space": "autocomplete", // Enable autocomplete with Ctrl+Space
+            },
+        });
+
+        // Override console.log to capture output
+        const originalConsoleLog = console.log;
+        let capturedOutput = "";
+
+        console.log = function (...args) {
+            capturedOutput += args.join(" ") + "\n"; // Capture the output
+            originalConsoleLog.apply(console, args); // Preserve original console.log behavior
+        };
+
+        // Initialize Pyodide
+        let pyodide;
+        async function initializePyodide() {
+            pyodide = await loadPyodide({
+                indexURL: "https://cdn.jsdelivr.net/pyodide/v0.21.3/full/",
+            });
+            console.log("Pyodide initialized successfully!");
+        }
+
+        // Run the code when the button is clicked
+        async function run() {
+            const code = editor.getValue(); // Get the code from the editor
+            const language = document.getElementById("language-select").value; // Get the selected language
+            const outputElement = document.getElementById("output");
+
+            outputElement.innerText = "Running..."; // Show that the code is running
+            capturedOutput = ""; // Reset captured output
+
+            try {
+                if (language === "javascript") {
+                    // Evaluate JavaScript code
+                    let result = eval(code);
+
+                    // Display the result in the output area
+                    if (result !== undefined) {
+                        outputElement.innerText = result;
+                    } else if (capturedOutput) {
+                        outputElement.innerText = capturedOutput; // Display captured console.log output
+                    } else {
+                        outputElement.innerText = "Code executed successfully (no output).";
+                    }
+                } else if (language === "python") {
+                    // Ensure Pyodide is initialized
+                    if (!pyodide) {
+                        await initializePyodide();
+                    }
+
+                    // Execute Python code
+                    let result = await pyodide.runPythonAsync(code);
+
+                    // Display the result in the output area
+                    if (result !== undefined) {
+                        outputElement.innerText = result;
+                    } else if (capturedOutput) {
+                        outputElement.innerText = capturedOutput; // Display captured console.log output
+                    } else {
+                        outputElement.innerText = "Code executed successfully (no output).";
+                    }
+                }
+            } catch (e) {
+                // If an error occurs, show the error message in the output area
+                outputElement.innerText = "Error: " + e.message;
+            }
+        }
+
+        // Change CodeMirror mode based on selected language
+        document.getElementById("language-select").addEventListener("change", (e) => {
+            const language = e.target.value;
+            editor.setOption("mode", language);
+        });
+
+        // Change CodeMirror theme based on selected theme
+        document.getElementById("theme-select").addEventListener("change", (e) => {
+            const theme = e.target.value;
+            editor.setOption("theme", theme);
+        });
+
+        // Initialize Split.js for draggable divider
+        Split(['.editor-panel', '.output-panel'], {
+            sizes: [50, 50],
+            minSize: 200,
+            gutterSize: 10,
+        });
+
+        // Initialize Pyodide on page load
+        initializePyodide();
+    </script>
+
+</body>
+
+</html>
