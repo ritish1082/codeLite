@@ -16,11 +16,11 @@ After spending hours on LeetCode, I got curious about how these code editors are
 
 ## What's Next
 
-- [] Add support for compiled languages like C/C++/Rust
+- [ ] Add support for compiled languages like C/C++/Rust
 
-- [] Enable online sharing with Yjs
+- [ ] Enable online sharing with Yjs
 
-- [] Create default templates for interviews, like CoderPad
+- [ ] Create default templates for interviews, like CoderPad
 
 ## License
 
